@@ -1,3 +1,5 @@
+import threading
+
 import msgpack
 import re
 import websocket
@@ -22,11 +24,14 @@ class StreamConn(object):
         })
         ws.send(msg, opcode=ABNF.OPCODE_BINARY)
 
-    def run(self, streams):
+    def run(self, streams, event: threading.Event = None):
+        if event is None:
+            event = threading.Event()
+
         ws = self._connect()
         try:
             self._subscribe(ws, streams)
-            while True:
+            while not event.is_set():
                 r = ws.recv()
                 msg = msgpack.loads(r)
                 key = msg.get('key')
